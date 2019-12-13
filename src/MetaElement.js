@@ -1,11 +1,13 @@
 import React from 'react';
 
-const Meta = props => {
-  console.log('meta', props)
+const Meta = ({ attributes, children, element }) => {
+  const handleClick = (e) => {
+    e.preventDefault()
+  }
   return (
-    <div>
-      props
-    </div>
+   <div contentEditable={false} onClick={handleClick}>
+     abcd
+   </div>
   )
 }
 

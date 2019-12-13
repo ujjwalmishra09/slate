@@ -7,6 +7,7 @@ import { Slate, Editable, withReact } from 'slate-react'
 import { withHistory } from 'slate-history'
 import MetaElement from './MetaElement'
 import CheckListItemElement from './CheckListItemElement'
+import ReactJson from 'react-json-view'
 
 const CodeElement = props => {
   return (
@@ -39,7 +40,7 @@ const Leaf = ({ attributes, children, leaf }) => {
 
 
 const withCustom = editor => {
-  const { exec } = editor
+  const { exec, isVoid } = editor
 
   editor.exec = command => {
     const { selection } = editor
@@ -89,14 +90,19 @@ const withCustom = editor => {
         {
           type: 'check-list-item',
           checked: false,
-          children: [{ text: '' }]
+          children: [{ text: 'abcd' }]
         }
       )
     }
 
 
     else if (command.type === 'toggle_meta_block') {
-      const meta = { type: 'meta' }
+      const meta = {
+        type: 'meta-block',
+        cooktime: 3,
+        serves: 4,
+        children: [{ text: '' }]
+      }
       Editor.insertNodes(editor, meta)
     }
 
@@ -112,7 +118,6 @@ const withCustom = editor => {
       if (match) {
         const [, path] = match
         const start = Editor.start(editor, path)
-
         if (Point.equals(selection.anchor, start)) {
           Editor.setNodes(
             editor,
@@ -120,7 +125,11 @@ const withCustom = editor => {
             { match: { type: 'check-list-item' } }
           )
           return
+        } else {
+          exec(command)
         }
+      } else {
+        exec(command)
       }
     }
 
@@ -128,6 +137,10 @@ const withCustom = editor => {
     else {
       exec(command)
     }
+  }
+
+  editor.isVoid = element => {
+    return element.type === 'meta-block' ? true : isVoid(element)
   }
 
   return editor
@@ -148,6 +161,15 @@ const CustomEditor = {
     const [match] = Editor.nodes(editor, {
       match: { type: 'code' },
       mode: 'highest',
+    })
+
+    return !!match
+  },
+
+  isMetaBlockActive(editor) {
+    const [match] = Editor.nodes(editor, {
+      match: { type: 'meta-block' },
+      mode: 'all',
     })
 
     return !!match
@@ -186,14 +208,13 @@ const App = () => {
   ])
 
   const renderElement = useCallback(props => {
-    console.log(props.element.type)
     switch (props.element.type) {
       case 'code':
         return <CodeElement {...props} />
-      case 'meta':
+      case 'meta-block':
         return <MetaElement {...props} />
       case 'check-list-item':
-       return <CheckListItemElement {...props} />
+        return <CheckListItemElement {...props} />
       default:
         return <DefaultElement {...props} />
     }
@@ -204,6 +225,7 @@ const App = () => {
   }, [])
 
   return (
+    <>
     <Slate
       editor={editor}
       value={value}
@@ -211,7 +233,6 @@ const App = () => {
       onChange={(value, selection) => {
         setValue(value)
         setSelection(selection)
-        console.log(value)
       }}
     >
       <div>
@@ -255,6 +276,14 @@ const App = () => {
         >
           check list
         </button>
+        <button
+          onMouseDown={event => {
+            event.preventDefault()
+            editor.exec({ type: 'toggle_meta_block' })
+          }}
+        >
+          Meta Block
+        </button>
       </div>
       <Editable
         renderElement={renderElement}
@@ -263,8 +292,6 @@ const App = () => {
           if (!event.ctrlKey) {
             return
           }
-
-          // Replace the `onKeyDown` logic with our new commands.
           switch (event.key) {
             case '`': {
               event.preventDefault()
@@ -282,6 +309,12 @@ const App = () => {
         }}
       />
     </Slate>
+    <br />
+    <br />
+    <br />
+    <br />
+    <ReactJson src={value} collapsed={true}/>
+    </>
   )
 }
 

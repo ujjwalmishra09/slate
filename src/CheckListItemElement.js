@@ -4,7 +4,6 @@ import { Editor } from 'slate'
 import { css } from 'emotion'
 
 const CheckListItemElement = ({ attributes, children, element }) => {
-  console.log('commming here')
   const editor = useEditor()
   const readOnly = useReadOnly()
   const { checked } = element

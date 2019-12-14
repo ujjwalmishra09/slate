@@ -3,7 +3,9 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { createEditor, Editor, Range, Point } from 'slate'
 
 // Import the Slate components and React plugin.
-import { Slate, Editable, withReact } from 'slate-react'
+import { Slate, Editable, withReact, useEditor,
+  useFocused,
+  useSelected } from 'slate-react'
 import { withHistory } from 'slate-history'
 import MetaElement from './MetaElement'
 import CheckListItemElement from './CheckListItemElement'
@@ -14,6 +16,66 @@ const CodeElement = props => {
     <pre {...props.attributes}>
       <code>{props.children}</code>
     </pre>
+  )
+}
+
+const HeadingElement = props => {
+  const { level } = props.element
+
+  if (level === 1) {
+    return (
+      <h1 {...props.attributes}>
+        {props.children}
+      </h1>
+    )
+  } else if (level === 2) {
+    return (
+      <h2 {...props.attributes}>
+        {props.children}
+      </h2>
+    )
+  } else if (level === 3) {
+    return (
+      <h3 {...props.attributes}>
+        {props.children}
+      </h3>
+    )
+  }
+}
+
+const VideoElement = ({ attributes, children, element }) => {
+  const editor = useEditor()
+  const selected = useSelected()
+  const focused = useFocused()
+  const { url } = element
+  return (
+    <div {...attributes}>
+      <div
+        contentEditable={false}
+        style={{
+          boxShadow: selected && focused ? '0 0 0 3px #B4D5FF' : 'none',
+        }}
+      >
+        <iframe
+          src={`${url}?title=0&byline=0&portrait=0`}
+          frameBorder="0"
+        />
+        <input
+          value={url}
+          onClick={e => e.stopPropagation()}
+          style={{
+            marginTop: '5px',
+            boxSizing: 'border-box',
+          }}
+          onKeyDown={e => e.stopPropagation()}
+          onChange={value => {
+            const path = editor.findPath(element)
+            Editor.setNodes(editor, { url: value }, { at: path })
+          }}
+        />
+      </div>
+      {children}
+    </div>
   )
 }
 
@@ -84,6 +146,15 @@ const withCustom = editor => {
       )
     }
 
+    else if (command.type === 'toggle_heading_block') {
+      const isActive = CustomEditor.isHeadingBlockActive(editor, command.level)
+      Editor.setNodes(
+        editor,
+        { type: isActive ? null : 'heading', level: command.level },
+        { match: 'block' }
+      )
+    }
+
     else if (command.type === 'toggle_checklist_block') {
       Editor.insertNodes(
         editor,
@@ -140,7 +211,7 @@ const withCustom = editor => {
   }
 
   editor.isVoid = element => {
-    return element.type === 'meta-block' ? true : isVoid(element)
+    return element.type === 'meta-block' || element.type === 'video' ? true : isVoid(element)
   }
 
   return editor
@@ -160,6 +231,15 @@ const CustomEditor = {
   isCodeBlockActive(editor) {
     const [match] = Editor.nodes(editor, {
       match: { type: 'code' },
+      mode: 'highest',
+    })
+
+    return !!match
+  },
+
+  isHeadingBlockActive(editor, level) {
+    const [match] = Editor.nodes(editor, {
+      match: { type: 'heading', level },
       mode: 'highest',
     })
 
@@ -204,7 +284,7 @@ const App = () => {
     {
       type: 'paragraph',
       children: [{ text: 'A line of text in a paragraph.' }],
-    },
+    }
   ])
 
   const renderElement = useCallback(props => {
@@ -215,6 +295,10 @@ const App = () => {
         return <MetaElement {...props} />
       case 'check-list-item':
         return <CheckListItemElement {...props} />
+      case 'video':
+        return <VideoElement {...props} />
+      case 'heading':
+        return <HeadingElement {...props} />
       default:
         return <DefaultElement {...props} />
     }
@@ -236,6 +320,30 @@ const App = () => {
       }}
     >
       <div>
+        <button
+          onMouseDown={event => {
+            event.preventDefault()
+            editor.exec({ type: 'toggle_heading_block', level: 1 })
+          }}
+        >
+          heading
+        </button>
+        <button
+          onMouseDown={event => {
+            event.preventDefault()
+            editor.exec({ type: 'toggle_heading_block', level: 2 })
+          }}
+        >
+          heading 2
+        </button>
+        <button
+          onMouseDown={event => {
+            event.preventDefault()
+            editor.exec({ type: 'toggle_heading_block', level: 3 })
+          }}
+        >
+          heading 3
+        </button>
         <button
           onMouseDown={event => {
             event.preventDefault()
@@ -289,6 +397,7 @@ const App = () => {
         renderElement={renderElement}
         renderLeaf={renderLeaf}
         onKeyDown={event => {
+          // event.preventDefault()
           if (!event.ctrlKey) {
             return
           }
@@ -313,7 +422,7 @@ const App = () => {
     <br />
     <br />
     <br />
-    <ReactJson src={value} collapsed={true}/>
+    <ReactJson src={value} />
     </>
   )
 }

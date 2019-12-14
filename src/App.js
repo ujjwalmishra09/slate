@@ -11,6 +11,8 @@ import MetaElement from './MetaElement'
 import CheckListItemElement from './CheckListItemElement'
 import ReactJson from 'react-json-view'
 
+const LIST_TYPES = ['numbered-list', 'bulleted-list']
+
 const CodeElement = props => {
   return (
     <pre {...props.attributes}>
@@ -146,6 +148,40 @@ const withCustom = editor => {
       )
     }
 
+    else if (command.type === 'toggle_bulletedlist_block') {
+      const isList = LIST_TYPES.includes(command.format)
+      const isActive = CustomEditor.isBulletedListActive(editor)
+      console.log(command.format)
+      for (const f of LIST_TYPES) {
+        Editor.unwrapNodes(editor, { match: { type: f }, split: true })
+      }
+
+      Editor.setNodes(editor, {
+        type: isActive ? 'paragraph' : isList ? 'list-item' : command.format,
+      })
+
+      if (!isActive && isList) {
+        Editor.wrapNodes(editor, { type: command.format, children: [] })
+      }
+    }
+
+    else if (command.type === 'toggle_numberedlist_block') {
+      const isList = LIST_TYPES.includes(command.format)
+      const isActive = CustomEditor.isBulletedListActive(editor)
+
+      for (const f of LIST_TYPES) {
+        Editor.unwrapNodes(editor, { match: { type: f }, split: true })
+      }
+
+      Editor.setNodes(editor, {
+        type: isActive ? 'paragraph' : isList ? 'list-item' : command.format,
+      })
+
+      if (!isActive && isList) {
+        Editor.wrapNodes(editor, { type: command.format, children: [] })
+      }
+    }
+
     else if (command.type === 'toggle_heading_block') {
       const isActive = CustomEditor.isHeadingBlockActive(editor, command.level)
       Editor.setNodes(
@@ -237,6 +273,24 @@ const CustomEditor = {
     return !!match
   },
 
+  isBulletedListActive(editor) {
+    const [match] = Editor.nodes(editor, {
+      match: { type: 'bulleted-list' },
+      mode: 'all',
+    })
+
+    return !!match
+  },
+
+  isNumberedListActive(editor) {
+    const [match] = Editor.nodes(editor, {
+      match: { type: 'numbered-list' },
+      mode: 'all',
+    })
+
+    return !!match
+  },
+
   isHeadingBlockActive(editor, level) {
     const [match] = Editor.nodes(editor, {
       match: { type: 'heading', level },
@@ -288,6 +342,7 @@ const App = () => {
   ])
 
   const renderElement = useCallback(props => {
+    console.log(props.element.type)
     switch (props.element.type) {
       case 'code':
         return <CodeElement {...props} />
@@ -299,6 +354,12 @@ const App = () => {
         return <VideoElement {...props} />
       case 'heading':
         return <HeadingElement {...props} />
+      case 'bulleted-list':
+        return <ul {...props.attributes}>{props.children}</ul>
+      case 'list-item':
+        return <li {...props.attributes}>{props.children}</li>
+      case 'numbered-list':
+        return <ol {...props.attributes}>{props.children}</ol>
       default:
         return <DefaultElement {...props} />
     }
@@ -391,6 +452,22 @@ const App = () => {
           }}
         >
           Meta Block
+        </button>
+        <button
+          onMouseDown={event => {
+            event.preventDefault()
+            editor.exec({ type: 'toggle_bulletedlist_block', format: 'bulleted-list' })
+          }}
+        >
+          Ordered List
+        </button>
+        <button
+          onMouseDown={event => {
+            event.preventDefault()
+            editor.exec({ type: 'toggle_numberedlist_block', format: 'numbered-list' })
+          }}
+        >
+          Numbered List
         </button>
       </div>
       <Editable

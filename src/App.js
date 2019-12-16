@@ -45,6 +45,20 @@ const HeadingElement = props => {
   }
 }
 
+const SeperatorElement = props => {
+  return (
+    <div {...props.attributes}>
+      <div contentEditable={false} style={{ textAlign: 'center' }}>
+        <span className="dot"></span>
+        <span className="dot"></span>
+        <span className="dot"></span>
+        <span className="dot"></span>
+      </div>
+      {props.children}
+    </div>
+  )
+}
+
 const VideoElement = ({ attributes, children, element }) => {
   const editor = useEditor()
   const selected = useSelected()
@@ -202,6 +216,13 @@ const withCustom = editor => {
       )
     }
 
+    else if (command.type === 'toggle_seperator_block') {
+      Editor.insertNodes(
+        editor,
+        {type: 'seperator', children: [{ text: '' }]}
+      )
+    }
+
 
     else if (command.type === 'toggle_meta_block') {
       const meta = {
@@ -247,7 +268,8 @@ const withCustom = editor => {
   }
 
   editor.isVoid = element => {
-    return element.type === 'meta-block' || element.type === 'video' ? true : isVoid(element)
+    console.log(element.type)
+    return element.type === 'meta-block' || element.type === 'video' || element.type === 'seperator' ? true : isVoid(element)
   }
 
   return editor
@@ -360,6 +382,8 @@ const App = () => {
         return <li {...props.attributes}>{props.children}</li>
       case 'numbered-list':
         return <ol {...props.attributes}>{props.children}</ol>
+      case 'seperator':
+        return <SeperatorElement {...props} />
       default:
         return <DefaultElement {...props} />
     }
@@ -469,6 +493,14 @@ const App = () => {
         >
           Numbered List
         </button>
+        <button
+          onMouseDown={event => {
+            event.preventDefault()
+            editor.exec({ type: 'toggle_seperator_block' })
+          }}
+        >
+          Seperator
+        </button>
       </div>
       <Editable
         renderElement={renderElement}
@@ -499,7 +531,16 @@ const App = () => {
     <br />
     <br />
     <br />
-    <ReactJson src={value} />
+    <ReactJson
+      onDelete={false}
+      onAdd={false}
+      enableClipboard={false}
+      displayDataTypes={false}
+      displayObjectSize={false}
+      onEdit={false}
+      shouldCollapse={false}
+      src={value}
+    />
     </>
   )
 }

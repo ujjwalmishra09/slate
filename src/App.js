@@ -216,10 +216,10 @@ const withCustom = editor => {
       )
     }
 
-    else if (command.type === 'toggle_seperator_block') {
+    else if (command.type === 'toggle_separator_block') {
       Editor.insertNodes(
         editor,
-        {type: 'seperator', children: [{ text: '' }]}
+        {type: 'separator', children: [{ text: '' }]}
       )
     }
 
@@ -269,7 +269,7 @@ const withCustom = editor => {
 
   editor.isVoid = element => {
     console.log(element.type)
-    return element.type === 'meta-block' || element.type === 'video' || element.type === 'seperator' ? true : isVoid(element)
+    return element.type === 'meta-block' || element.type === 'video' || element.type === 'separator' ? true : isVoid(element)
   }
 
   return editor
@@ -382,7 +382,7 @@ const App = () => {
         return <li {...props.attributes}>{props.children}</li>
       case 'numbered-list':
         return <ol {...props.attributes}>{props.children}</ol>
-      case 'seperator':
+      case 'separator':
         return <SeperatorElement {...props} />
       default:
         return <DefaultElement {...props} />
@@ -496,10 +496,10 @@ const App = () => {
         <button
           onMouseDown={event => {
             event.preventDefault()
-            editor.exec({ type: 'toggle_seperator_block' })
+            editor.exec({ type: 'toggle_separator_block' })
           }}
         >
-          Seperator
+          Separator
         </button>
       </div>
       <Editable
